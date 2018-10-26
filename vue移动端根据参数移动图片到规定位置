@@ -1,0 +1,324 @@
+<template>
+	<div style="padding-bottom: 50px;position:relative">
+		<header  class="brand-expailn">
+  			<h4>玩法说明</h4>
+  			<p>请快速浏览以上15张卡牌的正反面,从每张卡牌的正面和反面<span class="red">(点击翻转)</span>中选择一个更符合自己的，然后从中：</p>
+  			<p>①选<span class="red">最符合</span>自己的4张拖动到第一排</p>
+  			<p>②<span class="red">较符合</span>自己的4张拖动到第二排</p>
+  			<p>③<span class="red">一般符合</span>自己的4张拖动到第三排</p>
+  			<p>④剩余三个位置是弃牌区</p>
+  			<p>摆放完成后点击完成摆牌将会有专业解牌师为您解读</p>
+				<a href="javascript:;" @click="uploadImg">完成摆牌</a>
+		</header>
+		<div ref="box" class="box" :style="{height:boxHeight+'px'}">
+					<div 
+						:class="{'xh-brand-box2':index!==OnLineTestData.count,'xh-brand-box2-btn':index===OnLineTestData.count}" 
+						:style="{
+							height:OnLineTestData.height+'px',
+							width:boxWidth+'px',
+							top:(Math.ceil((index+1)/OnLineTestData.col)-1)*OnLineTestData.height + (Math.ceil((index+1)/OnLineTestData.col)-1)*10+'px',
+							left:index%OnLineTestData.col*boxWidth + ((index%OnLineTestData.col)+1)*10+'px'}" 
+						v-for="(i,index) in OnLineTestData.count">
+      			
+      		</div>
+		</div>
+	    
+	  <div class="box" :style="{height:boxHeight+10+'px'}">
+				<div class="xh-brand-box"
+						:style="{
+							height:OnLineTestData.height+'px',
+							width:boxWidth+'px',
+							top:(Math.ceil((index+1)/OnLineTestData.col)-1)*OnLineTestData.height + (Math.ceil((index+1)/OnLineTestData.col)-1)*10+'px',
+							left:index%OnLineTestData.col*boxWidth + ((index%OnLineTestData.col)+1)*10+'px'}" 
+						v-for="(i,index) in OnLineTestData.count"
+			      		@touchstart.stop.prevent="down($event)"
+				        @touchmove.stop.prevent="move($event)"  
+				        @touchend.stop.prevent="end($event)">
+		      		<div class="xh-brand">
+				        <img  class="positive" src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1539232347683&di=beb9a1d36aa3ab20ad96026c8c1692a2&imgtype=0&src=http%3A%2F%2Fimg.weplay.cn%2Fapp%2Fwww%2Ftemplates%2Fcommon%2Fimg%2Fupload%2Fgonglie%2F201410%2F27%2F1414400497.jpg"/>
+				        <img  class="con" src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1539232386307&di=4e9503f9f1b9707aa509970333857754&imgtype=0&src=http%3A%2F%2Fi1.hdslb.com%2Fbfs%2Farchive%2F1a79bbea7556fa710d5f189c0c62954a904f9405.jpg"/>
+			      	</div>
+		      </div>
+		</div>
+		
+	</div>
+</template>
+
+<script>
+	import html2canvas from 'html2canvas'
+	export default {
+	  components: {
+	    
+	  },
+	  mounted(){
+	  	this.$nextTick(()=>{
+				
+	  		this.boxWidth = (this.$refs.box.offsetWidth-(this.OnLineTestData.col+1)*10)/this.OnLineTestData.col
+				//大盒子的高度 = 元素高度*行数+上边距*（行数-1）
+				this.boxHeight = this.OnLineTestData.height*this.OnLineTestData.row+10*(this.OnLineTestData.row-1)
+	  	})
+	  },
+		created(){
+			this.getOnLineTestData()
+		},
+	  data(){
+	  	return{
+	  		rotate:"rotateY(0deg)",
+	  		position2:{
+	  			x:0,
+	  			y:0
+	  		},
+	  		dx:0,
+	  		dy:0,
+	  		nx:0, 
+	  		ny:0,
+	  		onMove:false,
+	  		boxWidth:0,
+				boxHeight:0,
+	  		primaryX:0,
+	  		primaryY:0,
+				OnLineTestData:{}
+	  	}
+	  },
+	  methods:{
+			getOnLineTestData(){
+				this.OnLineTestData = {
+					//行数
+					row:4,
+					//列数
+					col:4,
+					//卡牌总数
+					count:15,
+					//每一个卡牌的高度,
+					height:50
+				}
+			},
+			fileObject(dataurl, filename){
+				//将base64转换为file对象
+				let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+					bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+				while(n--){
+					u8arr[n] = bstr.charCodeAt(n);
+				}
+				return new File([u8arr], filename, {type:mime});
+			},
+			uploadImg(){
+				let that = this;
+				var opts = { 
+					allowTaint:true,//允许加载跨域的图片
+				  tainttest:true, //检测每张图片都已经加载完成
+				  logging: false, //日志开关，发布的时候记得改成false
+				}; 
+				html2canvas(that.$refs.box,opts).then(function (canvas) { 
+						let dataURL = canvas.toDataURL("image/png")
+						let file = that.fileObject(dataURL,"img001")
+						let param = new FormData(); //创建form对象
+						param.append('file',file,file.name);//通过append向form对象添加数据
+						param.append('targetEnum',"Image");//通过append向form对象添加数据
+						let config = {
+							headers:{'Content-Type':'multipart/form-data'}
+						};  
+						that.$http.post('/file/update',param,config)
+						.then(response=>{
+							console.log(response.data);
+							that.$vux.loading.hide()
+						}).catch(function(res){
+							console.log(res)
+							that.$vux.loading.hide()
+						}) 
+				});
+			},
+	  	down(e,index){
+	  		let touch;
+	  		let moveDiv = this.returnDivElem(e.target)
+	      	this.primaryX = moveDiv.style.left.replace("px","")
+	      	this.primaryY = moveDiv.style.top.replace("px","")
+		    if(event.touches){
+		        touch = event.touches[0];
+		    }else {
+		        touch = event;
+		    }
+      	this.$emit('changeAppOverflow-a', 'hidden')
+		    this.position2.x = touch.clientX;
+		    this.position2.y = touch.clientY;
+		    this.dx = moveDiv.offsetLeft;
+		    this.dy = moveDiv.offsetTop;
+
+	  	},
+	  	move(e){
+	  		let touch ;
+	      	if(event.touches){
+	          touch = event.touches[0];
+	      	}else {
+	          touch = event;
+	      	}
+	      	this.onMove = true;
+	  		let moveDiv = this.returnDivElem(e.target)
+	      	
+	      	this.nx = touch.clientX - this.position2.x;
+		    this.ny = touch.clientY - this.position2.y;
+		    
+		    moveDiv.style.left = this.dx+this.nx+"px";
+		    moveDiv.style.top = this.dy+this.ny+"px";
+		},
+	  	end(e){
+		  	let moveDiv = this.returnDivElem(e.target)
+	  		if(this.onMove){
+	  			let obj = this.returnPosition(this.dx+this.nx,this.dy+this.ny)
+			    moveDiv.style.left = obj.x+"px";
+			    moveDiv.style.top = obj.y+"px";
+	  		}else{
+	  			let nodeElem = moveDiv.children[0]
+		  		let rotate = nodeElem.style.transform
+		  		if(rotate==="rotateY(0deg)"||rotate===""){
+					nodeElem.style.transform = "rotateY(180deg)"
+				}else{
+					nodeElem.style.transform = "rotateY(0deg)"
+				}
+	  		}
+	  		this.onMove = false;
+	  		this.$emit('changeAppOverflow-a', 'auto')
+	  		
+	  	},
+	  	returnPosition(x,y){
+	  		const num = this.boxHeight+20;
+				const height = this.OnLineTestData.height;
+				const top = height+10;
+				const width = this.boxWidth;
+				const left = width+10;
+				const row = this.OnLineTestData.row;
+				const col = this.OnLineTestData.col;
+				let obj = {x:this.primaryX,y:this.primaryY};
+				//判断被移动的元素是否移动到规定盒子内
+// 				console.log("x",x)
+// 				console.log("y",y)
+// 				console.log("num",-num)
+				if(y<0&&y>-num&&x>0){
+					//被移动的元素最终拖放的行数（反过来计算）如总行数是4，则第一行是4
+					let a = Math.abs(y/top).toFixed(2)
+					let d = Math.round(a)
+					
+					 // console.log("触发")
+					 //被拖动的元素最终拖放的列数，从0开始计算
+					let b = Math.abs(x/left).toFixed(2)
+					let c = Math.round(b)
+					//被移动的元素当前所在的行数（从0开始计算）
+					let e = Math.round(this.primaryY/height)
+					// console.log("c",c)
+
+					if(d>0&&d<=row&&c>=0&&c<col){
+						obj.y = -((height+10)*d)
+						obj.x = (width+10)*c+10
+					}
+				}
+	  		return obj
+	  	},
+	  	returnDivElem(elem){
+	  		if(elem.nodeName==="DIV"){
+	  			let nodeElem =  elem.children[0];
+	  			if(nodeElem.nodeName==="DIV"){
+	  				return elem
+	  			}
+	  			return elem.parentNode
+	  		}else if(elem.nodeName==="IMG"){
+	  			let nodeElem =  elem.parentNode.parentNode;
+	  			return nodeElem
+	  		}
+	  	}
+	  }
+	}
+</script>
+
+<style scoped>
+	canvas{
+		width:100%;
+		height:400px;
+	}
+	.brand-expailn>h4{
+		text-align: center;
+		margin: 10px 0;
+	}
+	.brand-expailn>h4::after{
+		content:"";
+		display: block;
+		width:35px;
+		height:3px;
+		background-color: #999;
+		margin: 10px auto;
+	}
+	.brand-expailn p{
+		font-size: 0.7em;
+		text-indent:10px;
+		padding: 1px 5px;
+	}
+	.red{
+		color:darkred;
+	}
+	a{
+	    color: #444;
+	    display: block;
+	    text-align: center;
+	    font-size: 0.8em;
+	    line-height: 30px;
+	    border-radius: 2px;
+	    padding: 8px 15px;
+			background-color:#E9C816;
+			width:100px;
+			margin:0 auto;
+			border-radius:5px;
+			
+	}
+	.box{
+		position: relative;
+		margin-top: 10px;
+		width:100%;
+	}
+	ul,li{
+		position: relative;
+		list-style: none;
+	}
+	ul.all-brand{width:100%;height:400px;padding: 10px;}
+	ul.all-brand li{
+		width:20%;
+		float: left;
+		height:60px;
+		padding: 10px 0;
+		margin:0 7px;
+	}
+	.xh-brand-box2{
+		position: absolute;
+		/* max-width:80px; */
+		height:60px;
+		box-shadow:0 0 1px darkred;
+	}
+	.xh-brand-box{
+		position: absolute;
+		/* max-width:80px; */
+		height:60px;
+	}
+	.xh-brand-box2-btn{
+		position: absolute;
+		/* max-width:80px; */
+		/* height:60px; */
+		/* line-height: 60px; */
+	}
+	.xh-brand{
+		transition:all 1s;
+		width:100%;
+		height:100%;
+		position: absolute;
+		transform-style: preserve-3d;
+	}
+	.xh-brand img{
+		width:100%;
+		height:100%;
+		position: absolute;
+
+	}
+	.positive{
+		transform: translate3d(0,0,1px)
+	}
+	.con{
+		transform: translate3d(0,0,0px)
+	}
+</style>
